@@ -8,3 +8,4 @@ cypress/support/index.js
 cypress/videos
 .idea
 .vscode
+*.ged

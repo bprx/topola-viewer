@@ -47,6 +47,7 @@ import {
   WikiTreeDataSource,
   WikiTreeSourceSpec,
 } from './datasource/wikitree';
+import md5 from 'md5';
 
 /**
  * Load GEDCOM URL from REACT_APP_STATIC_URL environment variable.
@@ -221,6 +222,7 @@ export function App() {
   /** Freeze animations after initial chart render. */
   const [freezeAnimation, setFreezeAnimation] = useState(false);
   const [config, setConfig] = useState(DEFALUT_CONFIG);
+  const [famtreeLoaded, setFamtreeLoaded] = useState(false);
 
   const intl = useIntl();
   const history = useHistory();
@@ -254,6 +256,64 @@ export function App() {
   function setErrorMessage(message: string) {
     setError(message);
     setState(AppState.ERROR);
+  }
+
+  async function fetchFile(filepath: string) {
+    // prefix public dir files with `process.env.PUBLIC_URL`
+    // see https://create-react-app.dev/docs/using-the-public-folder/
+    const res = await fetch(`${process.env.PUBLIC_URL}/${filepath}`);
+  
+    // check for errors
+    if (!res.ok) {
+      throw res;
+    }
+  
+    return res.text();
+  };
+
+  async function loadFamilyTree() {
+    console.log(`start loading family_tree.ged`);
+    // const files = (event.target as HTMLInputElement).files;
+    // if (!files || !files.length) {
+    //   return;
+    // }
+    // const filesArray = Array.from(files);
+    // (event.target as HTMLInputElement).value = ''; // Reset the file input.
+    // analyticsEvent('upload_files_selected', {
+    //   event_value: files.length,
+    // });
+
+    // const gedcomFile =
+    //   filesArray.length === 1
+    //     ? filesArray[0]
+    //     : filesArray.find((file) => file.name.toLowerCase().endsWith('.ged')) ||
+    //       filesArray[0];
+    // const {gedcom, images} = await loadFile(gedcomFile);
+    
+    const gedcom = await fetchFile('family_tree.ged');
+    const images = new Map();
+
+    // Convert uploaded images to object URLs.
+    // filesArray
+    //   .filter(
+    //     (file) => file.name !== gedcomFile.name && isImageFileName(file.name),
+    //   )
+    //   .forEach((file) => images.set(file.name, URL.createObjectURL(file)));
+
+    // Hash GEDCOM contents with uploaded image file names.
+    const imageFileNames = Array.from(images.keys()).sort().join('|');
+    const hash = md5(md5(gedcom) + imageFileNames);
+
+    // Use history.replace() when reuploading the same file and history.push() when loading
+    // a new file.
+    const search = queryString.parse(location.search);
+    const historyPush = search.file === hash ? history.replace : history.push;
+
+    historyPush({
+      pathname: '/view',
+      search: queryString.stringify({file: hash}),
+      state: {data: gedcom, images},
+    });
   }
 
   const uploadedDataSource = new UploadedDataSource();
@@ -326,6 +386,11 @@ export function App() {
 
   useEffect(() => {
     (async () => {
+      if (!famtreeLoaded) {
+        await loadFamilyTree();
+        setFamtreeLoaded(true);  
+      }
+
       if (location.pathname !== '/view') {
         if (state !== AppState.INITIAL) {
           setState(AppState.INITIAL);
