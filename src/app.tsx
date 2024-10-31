@@ -1,22 +1,14 @@
+import { onAuthStateChanged, signInWithEmailAndPassword, User } from 'firebase/auth';
 import * as H from 'history';
+import md5 from 'md5';
 import * as queryString from 'query-string';
-import {analyticsEvent} from './util/analytics';
-import {Changelog} from './changelog';
-import {DataSourceEnum, SourceSelection} from './datasource/data_source';
-import {Details} from './details/details';
-import {EmbeddedDataSource, EmbeddedSourceSpec} from './datasource/embedded';
-import {FormattedMessage, useIntl} from 'react-intl';
-import {getI18nMessage} from './util/error_i18n';
-import {IndiInfo} from 'topola';
-import {Intro} from './intro';
-import {Loader, Message, Portal, Tab} from 'semantic-ui-react';
-import {Media} from './util/media';
-import {Redirect, Route, Switch} from 'react-router-dom';
-import {TopBar} from './menu/top_bar';
-import {TopolaData} from './util/gedcom_util';
-import {useEffect, useState} from 'react';
-import {useHistory, useLocation} from 'react-router';
-import {idToIndiMap} from './util/gedcom_util';
+import { useEffect, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { useHistory, useLocation } from 'react-router';
+import { Redirect, Route, Switch } from 'react-router-dom';
+import { Card, Form, FormButton, FormInput, Loader, Message, Portal, Tab } from 'semantic-ui-react';
+import { IndiInfo } from 'topola';
+import { Changelog } from './changelog';
 import {
   Chart,
   ChartType,
@@ -34,12 +26,14 @@ import {
   Ids,
   Sex,
 } from './config';
+import { DataSourceEnum, SourceSelection } from './datasource/data_source';
+import { EmbeddedDataSource, EmbeddedSourceSpec } from './datasource/embedded';
 import {
+  GedcomUrlDataSource,
   getSelection,
+  UploadedDataSource,
   UploadSourceSpec,
   UrlSourceSpec,
-  GedcomUrlDataSource,
-  UploadedDataSource,
 } from './datasource/load_data';
 import {
   loadWikiTree,
@@ -47,7 +41,14 @@ import {
   WikiTreeDataSource,
   WikiTreeSourceSpec,
 } from './datasource/wikitree';
-import md5 from 'md5';
+import { Details } from './details/details';
+import { auth } from './firebase';
+import { Intro } from './intro';
+import { TopBar } from './menu/top_bar';
+import { analyticsEvent } from './util/analytics';
+import { getI18nMessage } from './util/error_i18n';
+import { idToIndiMap, TopolaData } from './util/gedcom_util';
+import { Media } from './util/media';
 
 /**
  * Load GEDCOM URL from REACT_APP_STATIC_URL environment variable.
@@ -58,7 +59,7 @@ import md5 from 'md5';
 const staticUrl = process.env.REACT_APP_STATIC_URL;
 
 /** Shows an error message in the middle of the screen. */
-function ErrorMessage(props: {message?: string}) {
+function ErrorMessage(props: { message?: string }) {
   return (
     <Message negative className="error">
       <Message.Header>
@@ -172,13 +173,13 @@ function getArguments(location: H.Location<any>): Arguments {
       handleCors: getParam('handleCors') !== 'false', // True by default.
     };
   } else if (embedded) {
-    sourceSpec = {source: DataSourceEnum.EMBEDDED};
+    sourceSpec = { source: DataSourceEnum.EMBEDDED };
   }
 
   const indi = getParam('indi');
   const parsedGen = Number(getParam('gen'));
   const selection = indi
-    ? {id: indi, generation: !isNaN(parsedGen) ? parsedGen : 0}
+    ? { id: indi, generation: !isNaN(parsedGen) ? parsedGen : 0 }
     : undefined;
 
   return {
@@ -223,6 +224,9 @@ export function App() {
   const [freezeAnimation, setFreezeAnimation] = useState(false);
   const [config, setConfig] = useState(DEFALUT_CONFIG);
   const [famtreeLoaded, setFamtreeLoaded] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
 
   const intl = useIntl();
   const history = useHistory();
@@ -262,14 +266,25 @@ export function App() {
     // prefix public dir files with `process.env.PUBLIC_URL`
     // see https://create-react-app.dev/docs/using-the-public-folder/
     const res = await fetch(`${process.env.PUBLIC_URL}/${filepath}`);
-  
+
     // check for errors
     if (!res.ok) {
       throw res;
     }
-  
+
     return res.text();
   };
+
+  async function handleSignIn() {
+    console.log(`sign in: ${email}, ${password}`);
+    try {
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      setUser(userCred.user);
+      console.log(`signed in: ${user?.uid}`);
+    } catch (err) {
+      console.log(`Error signing in: ${err}`);
+    }
+  }
 
   async function loadFamilyTree() {
     console.log(`start loading family_tree.ged`);
@@ -289,7 +304,7 @@ export function App() {
     //     : filesArray.find((file) => file.name.toLowerCase().endsWith('.ged')) ||
     //       filesArray[0];
     // const {gedcom, images} = await loadFile(gedcomFile);
-    
+
     const gedcom = await fetchFile('family_tree.ged');
     const images = new Map();
 
@@ -311,8 +326,8 @@ export function App() {
 
     historyPush({
       pathname: '/view',
-      search: queryString.stringify({file: hash}),
-      state: {data: gedcom, images},
+      search: queryString.stringify({ file: hash }),
+      state: { data: gedcom, images },
     });
   }
 
@@ -326,7 +341,7 @@ export function App() {
       // New data source means new data.
       return true;
     }
-    const newSource = {spec: newSourceSpec, selection: newSelection};
+    const newSource = { spec: newSourceSpec, selection: newSelection };
     const oldSouce = {
       spec: sourceSpec,
       selection: selection,
@@ -385,10 +400,17 @@ export function App() {
   }
 
   useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      console.log(`onAuthStateChanged is triggered, user = ${user?.email}`);
+      setUser(user);
+    });
+  }, []);
+
+  useEffect(() => {
     (async () => {
       if (!famtreeLoaded) {
         await loadFamilyTree();
-        setFamtreeLoaded(true);  
+        setFamtreeLoaded(true);
       }
 
       if (location.pathname !== '/view') {
@@ -401,7 +423,7 @@ export function App() {
       const args = getArguments(location);
 
       if (!args.sourceSpec) {
-        history.replace({pathname: '/'});
+        history.replace({ pathname: '/' });
         return;
       }
 
@@ -457,7 +479,7 @@ export function App() {
                   id: 'error.failed_wikitree_load_more',
                   defaultMessage: 'Failed to load data from WikiTree. {error}',
                 },
-                {error},
+                { error },
               ),
             );
           }
@@ -641,16 +663,52 @@ export function App() {
           />
         )}
       />
-      {staticUrl ? (
-        <Switch>
-          <Route exact path="/view" render={renderMainArea} />
-          <Redirect to={'/view'} />
-        </Switch>
-      ) : (
+      {user ? (
         <Switch>
           <Route exact path="/" component={Intro} />
           <Route exact path="/view" render={renderMainArea} />
           <Redirect to={'/'} />
+        </Switch>
+      ) : (
+        // <Switch>
+        //   <Route exact path="/view" render={renderMainArea} />
+        //   <Redirect to={'/view'} />
+        // </Switch>
+        <Switch>
+          <Route render={() => (
+            <div id="content">
+              <div className="backgroundImage" />
+              <Card className="intro">
+                <Card.Content as={Media} greaterThanOrEqual="large">
+                  <Card.Header>
+                    <FormattedMessage
+                      id="intro.title"
+                      defaultMessage="Topola Genealogy Viewer"
+                    />
+                  </Card.Header>
+                </Card.Content>
+                <Card.Content>
+                  <p>Please enter your email address and password:</p>
+                  <Form onSubmit={handleSignIn}>
+                    <FormInput
+                      placeholder='Email'
+                      type="email"
+                      fluid
+                      name='email'
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <FormInput
+                      type="password"
+                      fluid
+                      name='password'
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <FormButton content='Submit' />
+                  </Form>
+                </Card.Content>
+              </Card>
+            </div>
+          )} />
         </Switch>
       )}
     </>
