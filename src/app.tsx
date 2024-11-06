@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useHistory, useLocation } from 'react-router';
 import { Redirect, Route, Switch } from 'react-router-dom';
-import { Card, Form, FormButton, FormInput, Loader, Message, Portal, Tab } from 'semantic-ui-react';
+import { Button, Card, Form, FormButton, FormInput, Loader, Message, Portal, Tab } from 'semantic-ui-react';
 import { IndiInfo } from 'topola';
 import { Changelog } from './changelog';
 import {
@@ -57,6 +57,7 @@ import { Media } from './util/media';
  * single-tree mode without the option to load other data.
  */
 const staticUrl = process.env.REACT_APP_STATIC_URL;
+// const staticUrl = 'http://localhost:5000/familyTree';
 
 /** Shows an error message in the middle of the screen. */
 function ErrorMessage(props: { message?: string }) {
@@ -276,44 +277,33 @@ export function App() {
   };
 
   async function handleSignIn() {
-    console.log(`sign in: ${email}, ${password}`);
+    console.log(`Signing in: ${email}`);
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       setUser(userCred.user);
-      console.log(`signed in: ${user?.uid}`);
+      // console.log(`Successful signed in: user uid= ${user?.uid}`);
+      console.log(`Successful signed in: userCred.user uid= ${userCred.user.uid}`);
+      // if (userCred.user) await loadFamilyTree();
+      // const res = await fetch('http://localhost:5000/helloWorld');
+      const res = await fetch('https://famtree-440108.web.app/helloWorld');
+      const resContent = await res.text();
+      console.log(`fetched: ${resContent}`);
     } catch (err) {
       console.log(`Error signing in: ${err}`);
     }
   }
 
-  async function loadFamilyTree() {
+  async function handleFetch() {
+    console.log(`Fetch button is clicked`);
+    const res = await fetch('http://localhost:5000/helloWorld');
+    const resContent = await res.text();
+    console.log(`fetched: ${resContent}`);
+  }
+
+  async function loadFamilyTreeFile() {
     console.log(`start loading family_tree.ged`);
-    // const files = (event.target as HTMLInputElement).files;
-    // if (!files || !files.length) {
-    //   return;
-    // }
-    // const filesArray = Array.from(files);
-    // (event.target as HTMLInputElement).value = ''; // Reset the file input.
-    // analyticsEvent('upload_files_selected', {
-    //   event_value: files.length,
-    // });
-
-    // const gedcomFile =
-    //   filesArray.length === 1
-    //     ? filesArray[0]
-    //     : filesArray.find((file) => file.name.toLowerCase().endsWith('.ged')) ||
-    //       filesArray[0];
-    // const {gedcom, images} = await loadFile(gedcomFile);
-
     const gedcom = await fetchFile('family_tree.ged');
     const images = new Map();
-
-    // Convert uploaded images to object URLs.
-    // filesArray
-    //   .filter(
-    //     (file) => file.name !== gedcomFile.name && isImageFileName(file.name),
-    //   )
-    //   .forEach((file) => images.set(file.name, URL.createObjectURL(file)));
 
     // Hash GEDCOM contents with uploaded image file names.
     const imageFileNames = Array.from(images.keys()).sort().join('|');
@@ -408,8 +398,11 @@ export function App() {
 
   useEffect(() => {
     (async () => {
+      if (!user) return;
       if (!famtreeLoaded) {
-        await loadFamilyTree();
+        console.log(`useEffect calling loadFamilyTreeFile()`);
+        console.log(`useEffect: user uid= ${user?.uid}`);
+        await loadFamilyTreeFile();
         setFamtreeLoaded(true);
       }
 
@@ -426,11 +419,13 @@ export function App() {
         history.replace({ pathname: '/' });
         return;
       }
-
+      console.log(`useEffect, state = ${state}`);
       if (
         state === AppState.INITIAL ||
         isNewData(args.sourceSpec, args.selection)
       ) {
+        // console.log(`useEffect, args = ${JSON.stringify(args)}`);
+        console.log(`useEffect, args = ${args.sourceSpec.source}`);
         // Set loading state.
         setState(AppState.LOADING);
         // Set state from URL parameters.
@@ -664,10 +659,13 @@ export function App() {
         )}
       />
       {user ? (
+        // <Switch>
+        //   <Route exact path="/" component={Intro} />
+        //   <Route exact path="/view" render={renderMainArea} />
+        //   <Redirect to={'/'} />
+        // </Switch>
         <Switch>
-          <Route exact path="/" component={Intro} />
-          <Route exact path="/view" render={renderMainArea} />
-          <Redirect to={'/'} />
+          <Route render={renderMainArea} />
         </Switch>
       ) : (
         // <Switch>
@@ -698,12 +696,14 @@ export function App() {
                       onChange={(e) => setEmail(e.target.value)}
                     />
                     <FormInput
+                      placeholder='Password'
                       type="password"
                       fluid
                       name='password'
                       onChange={(e) => setPassword(e.target.value)}
                     />
                     <FormButton content='Submit' />
+                    {/* <Button onClick={handleFetch}>Fetch</Button> */}
                   </Form>
                 </Card.Content>
               </Card>

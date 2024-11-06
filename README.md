@@ -129,3 +129,7 @@ Add `&handleCors=false` to the URL to avoid using the CORS proxy
 ### `embedded`
 
 Add `&embedded=true` to the URL. This option removes the options to open a different file. It is an option that was intended to be used when Topola Genealogy Viewer is in an iframe.
+
+## Firebase
+
+- Start emulator: `firebase emulators:start --import=emulator-data`

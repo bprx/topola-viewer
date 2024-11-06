@@ -283,11 +283,11 @@ export function TopBar(props: Props) {
           icon={null}
         >
           <Dropdown.Menu>
-            {fileMenus(ScreenSize.SMALL)}
+            {/* {fileMenus(ScreenSize.SMALL)} */}
             {chartMenus(ScreenSize.SMALL)}
-            {wikiTreeLoginMenu(ScreenSize.SMALL)}
+            {/* {wikiTreeLoginMenu(ScreenSize.SMALL)} */}
 
-            <Dropdown.Item
+            {/* <Dropdown.Item
               href="https://github.com/PeWu/topola-viewer"
               target="_blank"
               rel="noopener noreferrer"
@@ -296,7 +296,7 @@ export function TopBar(props: Props) {
                 id="menu.github"
                 defaultMessage="GitHub project"
               />
-            </Dropdown.Item>
+            </Dropdown.Item> */}
           </Dropdown.Menu>
         </Dropdown>
         {props.standalone ? <Link to="/">{title()}</Link> : title()}
@@ -310,7 +310,7 @@ export function TopBar(props: Props) {
         {props.standalone ? <Link to="/">{title()}</Link> : null}
         {fileMenus(ScreenSize.LARGE)}
         {chartMenus(ScreenSize.LARGE)}
-        <Menu.Menu position="right">
+        {/* <Menu.Menu position="right">
           {wikiTreeLoginMenu(ScreenSize.LARGE)}
           <Menu.Item
             href="https://github.com/PeWu/topola-viewer"
@@ -322,7 +322,7 @@ export function TopBar(props: Props) {
               defaultMessage="GitHub project"
             />
           </Menu.Item>
-        </Menu.Menu>
+        </Menu.Menu> */}
       </>
     );
   }
