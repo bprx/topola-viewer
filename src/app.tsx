@@ -42,7 +42,7 @@ import {
   WikiTreeSourceSpec,
 } from './datasource/wikitree';
 import { Details } from './details/details';
-import { auth } from './firebase';
+import { auth, helloWorld } from './firebase';
 import { Intro } from './intro';
 import { TopBar } from './menu/top_bar';
 import { analyticsEvent } from './util/analytics';
@@ -284,12 +284,17 @@ export function App() {
       // console.log(`Successful signed in: user uid= ${user?.uid}`);
       console.log(`Successful signed in: userCred.user uid= ${userCred.user.uid}`);
       // if (userCred.user) await loadFamilyTree();
-      // const res = await fetch('http://localhost:5000/helloWorld');
-      const res = await fetch('https://famtree-440108.web.app/helloWorld');
-      const resContent = await res.text();
-      console.log(`fetched: ${resContent}`);
     } catch (err) {
       console.log(`Error signing in: ${err}`);
+    }
+    try {
+      // const res = await fetch('http://localhost:5000/helloWorld');
+      // const res = await fetch('https://famtree-440108.web.app/helloWorld');
+      // const resContent = await res.text();
+      const resContent = await helloWorld();
+      console.log(`fetched: ${resContent.data}`);
+    } catch (err) {
+      console.log(`Error fetching helloWorld: ${err}`);
     }
   }
 

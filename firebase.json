@@ -5,22 +5,6 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/helloWorld",
-        "function": {
-          "functionId": "helloWorld",
-          "region": "asia-southeast1"
-        }
-      },
-      {
-        "source": "/familyTree",
-        "function": {
-          "functionId": "familyTree",
-          "region": "asia-southeast1"
-        }
-      }
     ]
   },
   "emulators": {
