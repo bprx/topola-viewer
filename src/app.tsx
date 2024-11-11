@@ -42,7 +42,7 @@ import {
   WikiTreeSourceSpec,
 } from './datasource/wikitree';
 import { Details } from './details/details';
-import { auth, helloWorld } from './firebase';
+import { auth, familyTree, helloWorld } from './firebase';
 import { Intro } from './intro';
 import { TopBar } from './menu/top_bar';
 import { analyticsEvent } from './util/analytics';
@@ -281,33 +281,29 @@ export function App() {
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       setUser(userCred.user);
-      // console.log(`Successful signed in: user uid= ${user?.uid}`);
       console.log(`Successful signed in: userCred.user uid= ${userCred.user.uid}`);
-      // if (userCred.user) await loadFamilyTree();
     } catch (err) {
       console.log(`Error signing in: ${err}`);
     }
     try {
-      // const res = await fetch('http://localhost:5000/helloWorld');
-      // const res = await fetch('https://famtree-440108.web.app/helloWorld');
-      // const resContent = await res.text();
       const resContent = await helloWorld();
-      console.log(`fetched: ${resContent.data}`);
+      console.log(`fetched helloWorld: ${resContent.data}`);
     } catch (err) {
       console.log(`Error fetching helloWorld: ${err}`);
     }
   }
 
-  async function handleFetch() {
-    console.log(`Fetch button is clicked`);
-    const res = await fetch('http://localhost:5000/helloWorld');
-    const resContent = await res.text();
-    console.log(`fetched: ${resContent}`);
-  }
-
   async function loadFamilyTreeFile() {
     console.log(`start loading family_tree.ged`);
-    const gedcom = await fetchFile('family_tree.ged');
+    // const gedcom = await fetchFile('family_tree.ged');
+    let gedcom: string = "";
+    try {
+      const resContent = await familyTree();
+      gedcom = resContent.data as string;
+      console.log(`fetched: ${gedcom.slice(0, 10)}`);
+    } catch (err) {
+      console.log(`Error fetching familyTree: ${err}`);
+    }
     const images = new Map();
 
     // Hash GEDCOM contents with uploaded image file names.

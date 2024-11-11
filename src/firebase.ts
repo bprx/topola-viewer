@@ -23,5 +23,6 @@ const functions = getFunctions(app, "asia-southeast1");
 // connectAuthEmulator(auth, "http://127.0.0.1:9099");
 // connectFunctionsEmulator(functions, "127.0.0.1", 5001);
 const helloWorld = httpsCallable(functions, "helloWorld");
+const familyTree = httpsCallable(functions, "familyTree");
 
-export { auth, helloWorld };
+export { auth, helloWorld, familyTree };
